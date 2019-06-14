@@ -1,18 +1,19 @@
 package helios.optics
 
-import helios.meta.json
+import helios.json
+import helios.test.generators.alphaStr
 import io.kotlintest.properties.Gen
 
 @json
-data class City(val streets: List<Street>)
+data class City(val streets: List<Street>) {
+  companion object
+}
 
 @json
-data class Street(val name: String)
-
-fun genStreet(): Gen<Street> = Gen.string().let { stringGen ->
-    Gen.create { Street(stringGen.generate()) }
+data class Street(val name: String) {
+  companion object
 }
 
-fun genCity(): Gen<City> = Gen.list(genStreet()).let { gen ->
-    Gen.create { City(gen.generate()) }
-}
+fun genStreet(): Gen<Street> = Gen.alphaStr().map { str -> Street(str) }
+
+fun genCity(): Gen<City> = Gen.list(genStreet()).map { streets -> City(streets) }

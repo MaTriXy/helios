@@ -1,106 +1,189 @@
 package helios.instances
 
-import arrow.core.Either
-import arrow.core.Option
-import arrow.core.Tuple2
-import arrow.core.Tuple3
-import arrow.instance
-import arrow.syntax.option.some
-import arrow.syntax.option.toEither
+import arrow.core.*
+import arrow.core.extensions.either.applicative.applicative
+import arrow.core.extensions.either.applicative.map2
+import arrow.extension
 import helios.core.*
 import helios.typeclasses.*
 
-object IntEncoderInstance : Encoder<Int> {
-    override fun encode(value: Int): Json = JsNumber(value)
+fun Double.Companion.encoder() = object : Encoder<Double> {
+  override fun Double.encode(): Json = JsNumber(this)
 }
 
-object IntEncoderInstanceImplicits {
-    fun instance(): IntEncoderInstance = IntEncoderInstance
+fun Double.Companion.decoder() = object : Decoder<Double> {
+  override fun decode(value: Json): Either<DecodingError, Double> =
+    value.asJsNumber().map { it.toDouble() }.toEither { NumberDecodingError(value) }
 }
 
-object IntDecoderInstance : Decoder<Int> {
-    override fun decode(value: Json): Either<DecodingError, Int> =
-            value.asJsNumber().flatMap { it.toInt() }.toEither { NumberDecodingError(value) }
+fun Float.Companion.encoder() = object : Encoder<Float> {
+  override fun Float.encode(): Json = JsNumber(this)
 }
 
-object IntDecoderInstanceImplicits {
-    fun instance(): IntDecoderInstance = IntDecoderInstance
+fun Float.Companion.decoder() = object : Decoder<Float> {
+  override fun decode(value: Json): Either<DecodingError, Float> =
+    value.asJsNumber().map { it.toFloat() }.toEither { NumberDecodingError(value) }
 }
 
-object BooleanEncoderInstance : Encoder<Boolean> {
-    override fun encode(value: Boolean): Json = JsBoolean(value)
+fun Long.Companion.encoder() = object : Encoder<Long> {
+  override fun Long.encode(): Json = JsNumber(this)
 }
 
-object BooleanEncoderInstanceImplicits {
-    fun instance(): BooleanEncoderInstance = BooleanEncoderInstance
+fun Long.Companion.decoder() = object : Decoder<Long> {
+  override fun decode(value: Json): Either<DecodingError, Long> =
+    value.asJsNumber().map { it.toLong() }.toEither { NumberDecodingError(value) }
 }
 
-object BooleanDecoderInstance : Decoder<Boolean> {
-    override fun decode(value: Json): Either<DecodingError, Boolean> =
-            value.asJsBoolean().flatMap { it.value.some() }.toEither { BooleanDecodingError(value) }
+fun Int.Companion.encoder() = object : Encoder<Int> {
+  override fun Int.encode(): Json = JsNumber(this)
 }
 
-object BooleanDecoderInstanceImplicits {
-    fun instance(): BooleanDecoderInstance = BooleanDecoderInstance
+fun Int.Companion.decoder() = object : Decoder<Int> {
+  override fun decode(value: Json): Either<DecodingError, Int> =
+    value.asJsNumber().flatMap { it.toInt() }.toEither { NumberDecodingError(value) }
 }
 
-object StringEncoderInstance : Encoder<String> {
-    override fun encode(value: String): Json = JsString(value)
+fun Short.Companion.encoder() = object : Encoder<Short> {
+  override fun Short.encode(): Json = JsNumber(this)
 }
 
-object StringEncoderInstanceImplicits {
-    fun instance(): StringEncoderInstance = StringEncoderInstance
+fun Short.Companion.decoder() = object : Decoder<Short> {
+  override fun decode(value: Json): Either<DecodingError, Short> =
+    value.asJsNumber().flatMap { it.toShort() }.toEither { NumberDecodingError(value) }
 }
 
-object StringDecoderInstance : Decoder<String> {
-    override fun decode(value: Json): Either<DecodingError, String> =
-            value.asJsString().flatMap { it.value.toString().some() }.toEither { StringDecodingError(value) }
+fun Byte.Companion.encoder() = object : Encoder<Byte> {
+  override fun Byte.encode(): Json = JsNumber(this)
 }
 
-object StringDecoderInstanceImplicits {
-    fun instance(): StringDecoderInstance = StringDecoderInstance
+fun Byte.Companion.decoder() = object : Decoder<Byte> {
+  override fun decode(value: Json): Either<DecodingError, Byte> =
+    value.asJsNumber().flatMap { it.toByte() }.toEither { NumberDecodingError(value) }
 }
 
-@instance(Option::class)
-interface OptionEncoderInstance<in A> : Encoder<Option<A>> {
-
-    fun encoderA(): Encoder<A>
-
-    override fun encode(value: Option<A>): Json =
-            value.fold({ JsNull }, { encoderA().encode(it) })
+fun Boolean.Companion.encoder() = object : Encoder<Boolean> {
+  override fun Boolean.encode(): Json = JsBoolean(this)
 }
 
-@instance(Tuple2::class)
-interface Tuple2EncoderInstance<A, B> : Encoder<Tuple2<A, B>> {
+fun Boolean.Companion.decoder() = object : Decoder<Boolean> {
+  override fun decode(value: Json): Either<DecodingError, Boolean> =
+    value.asJsBoolean().map { it.value }.toEither { BooleanDecodingError(value) }
+}
 
-    fun encoderA(): Encoder<A>
+fun String.Companion.encoder() = object : Encoder<String> {
+  override fun String.encode(): Json = JsString(this)
+}
 
-    fun encoderB(): Encoder<B>
+fun String.Companion.decoder() = object : Decoder<String> {
+  override fun decode(value: Json): Either<DecodingError, String> =
+    value.asJsString().map { it.value.toString() }.toEither { StringDecodingError(value) }
+}
 
-    override fun encode(value: Tuple2<A, B>): Json = JsArray(
-            listOf(
-                    encoderA().encode(value.a),
-                    encoderB().encode(value.b)
-            )
+@extension
+interface PairEncoderInstance<in A, in B> : Encoder<Pair<A, B>> {
+
+  fun encoderA(): Encoder<A>
+  fun encoderB(): Encoder<B>
+
+  override fun Pair<A, B>.encode(): Json = JsArray(
+    listOf(
+      encoderA().run { first.encode() },
+      encoderB().run { second.encode() }
     )
+  )
+
+  companion object {
+    operator fun <A, B> invoke(encoderA: Encoder<A>, encoderB: Encoder<B>): Encoder<Pair<A, B>> =
+      object : PairEncoderInstance<A, B> {
+        override fun encoderA(): Encoder<A> = encoderA
+        override fun encoderB(): Encoder<B> = encoderB
+      }
+  }
 
 }
 
-@instance(Tuple3::class)
-interface Tuple3EncoderInstance<A, B, C> : Encoder<Tuple3<A, B, C>> {
+@extension
+interface PairDecoderInstance<out A, out B> : Decoder<Pair<A, B>> {
 
-    fun encoderA(): Encoder<A>
+  fun decoderA(): Decoder<A>
+  fun decoderB(): Decoder<B>
 
-    fun encoderB(): Encoder<B>
+  override fun decode(value: Json): Either<DecodingError, Pair<A, B>> {
+    val arr = value.asJsArray().toList().flatMap { it.value }
+    return if (arr.size == 2)
+      decoderA().decode(arr.first()).map2(decoderB().decode(arr.last())) { it.toPair() }.fix()
+    else ArrayDecodingError(value).left()
+  }
 
-    fun encoderC(): Encoder<C>
+  companion object {
+    operator fun <A, B> invoke(decoderA: Decoder<A>, decoderB: Decoder<B>): Decoder<Pair<A, B>> =
+      object : PairDecoderInstance<A, B> {
+        override fun decoderA(): Decoder<A> = decoderA
+        override fun decoderB(): Decoder<B> = decoderB
+      }
+  }
 
-    override fun encode(value: Tuple3<A, B, C>): Json = JsArray(
-            listOf(
-                    encoderA().encode(value.a),
-                    encoderB().encode(value.b),
-                    encoderC().encode(value.c)
-            )
+}
+
+@extension
+interface TripleEncoderInstance<in A, in B, in C> : Encoder<Triple<A, B, C>> {
+
+  fun encoderA(): Encoder<A>
+  fun encoderB(): Encoder<B>
+  fun encoderC(): Encoder<C>
+
+  override fun Triple<A, B, C>.encode(): Json = JsArray(
+    listOf(
+      encoderA().run { first.encode() },
+      encoderB().run { second.encode() },
+      encoderC().run { third.encode() }
     )
+  )
+
+  companion object {
+    operator fun <A, B, C> invoke(
+      encoderA: Encoder<A>,
+      encoderB: Encoder<B>,
+      encoderC: Encoder<C>
+    ): Encoder<Triple<A, B, C>> =
+      object : TripleEncoderInstance<A, B, C> {
+        override fun encoderA(): Encoder<A> = encoderA
+        override fun encoderB(): Encoder<B> = encoderB
+        override fun encoderC(): Encoder<C> = encoderC
+      }
+  }
+
+}
+
+@extension
+interface TripleDecoderInstance<out A, out B, out C> : Decoder<Triple<A, B, C>> {
+
+  fun decoderA(): Decoder<A>
+  fun decoderB(): Decoder<B>
+  fun decoderC(): Decoder<C>
+
+  override fun decode(value: Json): Either<DecodingError, Triple<A, B, C>> {
+    val arr = value.asJsArray().toList().flatMap { it.value }
+    return if (arr.size == 3)
+      Either.applicative<DecodingError>().map(
+        decoderA().decode(arr[0]),
+        decoderB().decode(arr[1]),
+        decoderC().decode(arr[2])
+      ) { (a, b, c) -> Triple(a, b, c) }.fix()
+    else ArrayDecodingError(value).left()
+  }
+
+  companion object {
+    operator fun <A, B, C> invoke(
+      decoderA: Decoder<A>,
+      decoderB: Decoder<B>,
+      decoderC: Decoder<C>
+    ): Decoder<Triple<A, B, C>> =
+      object : TripleDecoderInstance<A, B, C> {
+        override fun decoderA(): Decoder<A> = decoderA
+        override fun decoderB(): Decoder<B> = decoderB
+        override fun decoderC(): Decoder<C> = decoderC
+      }
+  }
 
 }

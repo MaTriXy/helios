@@ -1,8 +1,5 @@
 package helios.parser
 
-import arrow.TC
-import arrow.typeclass
-
 /**
  * Facade is a type class that describes how Jawn should construct
  * JSON AST elements of type J.
@@ -10,17 +7,16 @@ import arrow.typeclass
  * Facade[J] also uses FContext[J] instances, so implementors will
  * usually want to define both.
  */
-@typeclass
-interface Facade<J> : TC {
-    fun singleContext(): FContext<J>
-    fun arrayContext(): FContext<J>
-    fun objectContext(): FContext<J>
+interface Facade<J> {
+  fun singleContext(): FContext<J>
+  fun arrayContext(): FContext<J>
+  fun objectContext(): FContext<J>
 
-    fun jnull(): J
-    fun jfalse(): J
-    fun jtrue(): J
-    fun jnum(s: CharSequence, decIndex: Int, expIndex: Int): J
-    fun jstring(s: CharSequence): J
+  fun jnull(): J
+  fun jfalse(): J
+  fun jtrue(): J
+  fun jnum(s: CharSequence, decIndex: Int, expIndex: Int): J
+  fun jstring(s: CharSequence): J
 }
 
 /**
@@ -31,8 +27,8 @@ interface Facade<J> : TC {
  * cases where the entire JSON document consists of "333.33".
  */
 interface FContext<J> {
-    fun add(s: CharSequence): Unit
-    fun add(v: J): Unit
-    fun finish(): J
-    fun isObj(): Boolean
+  fun add(s: CharSequence): Unit
+  fun add(v: J): Unit
+  fun finish(): J
+  fun isObj(): Boolean
 }

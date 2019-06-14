@@ -1,23 +1,96 @@
-dependencies {
-    compile project(":helios-core")
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlinVersion"
-    compile 'com.beust:klaxon:2.0.3'
-    compile 'com.tomatobean:jsonparser:1.0.5'
-    compile 'com.squareup.moshi:moshi-kotlin:1.5.0'
-    compile 'com.github.salomonbrys.kotson:kotson:2.5.0'
-    compile "com.fasterxml.jackson.module:jackson-module-kotlin:2.9.0"
-    compile "com.jsoniter:jsoniter:0.9.19"
-
-    kapt "io.arrow-kt:arrow-annotations-processor:$arrowVersion"
-    kapt project(':helios-meta-compiler')
-
+repositories {
+    maven { url "https://kotlin.bintray.com/kotlinx" }
 }
 
-apply from: rootProject.file('gradle/gradle-mvn-push.gradle')
 apply plugin: "me.champeau.gradle.jmh"
-apply plugin: 'kotlin-kapt'
+apply plugin: "kotlin-kapt"
+apply plugin: "kotlinx-serialization"
+apply plugin: "com.47deg.hood"
+
+dependencies {
+    compile project(":helios-core")
+    compile project(":helios-meta")
+    compile project(":helios-parser")
+    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlinVersion"
+    compile "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
+    compile "org.jetbrains.kotlinx:kotlinx-serialization-runtime:$kotlinxVersion"
+    compile "com.beust:klaxon:$klaxonVersion"
+    compile "com.tomatobean:jsonparser:$jsonparserVersion"
+    compile "com.squareup.moshi:moshi-kotlin:$moshiVersion"
+    compile "com.github.salomonbrys.kotson:kotson:$kotsonVersion"
+    compile "com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion"
+    compile "com.jsoniter:jsoniter:$jsoniterVersion"
+
+    kapt "io.arrow-kt:arrow-meta:$arrowVersion"
+    kapt project(":helios-meta")
+}
 
 jmh {
-    resultFormat = 'csv'
-    resultsFile = file('build/reports/benchmarks.csv')
+    resultFormat = "JSON"
+    resultsFile = file("$rootDir/build/reports/benchmark.json")
+    timeOnIteration = "1s"
+    if (project.hasProperty("jmhInclude"))
+        include = [jmhInclude]
+    if (project.hasProperty("jmhResultsFile"))
+        resultsFile = file(jmhResultsFile)
+}
+
+task executeMasterBenchmark {
+    doLast {
+        jmh.resultsFile = file("$rootDir/build/reports/master_benchmark.json")
+        jmh.include = ["helios.benchmarks.HeliosBenchmark"]
+    }
+    finalizedBy "jmh"
+}
+
+task executeHeliosBenchmark {
+    doLast {
+        jmh.resultsFile = file("$rootDir/build/reports/helios_benchmark.json")
+        jmh.include = ["helios.benchmarks.HeliosBenchmark"]
+    }
+    finalizedBy "jmh"
+}
+
+task executeLibrariesBenchmarks {
+    doLast {
+        jmh.resultsFile = file("$rootDir/build/reports/libraries_benchmark.json")
+        jmh.include = ["helios.benchmarks.Decoding", "helios.benchmarks.DecodingFromRaw", "helios.benchmarks.Parsing"]
+    }
+    finalizedBy "jmh"
+}
+
+task executeBenchmarks {
+    doLast {
+        jmh.resultsFile = file("$rootDir/build/reports/benchmarks.json")
+        jmh.include = ["helios.benchmarks.HeliosBenchmark", "helios.benchmarks.Decoding", "helios.benchmarks.DecodingFromRaw", "helios.benchmarks.Parsing"]
+    }
+    finalizedBy "jmh"
+}
+
+compareBenchmark {
+    previousBenchmarkPath = file("$rootDir/benchmarks/master_benchmark.json")
+    currentBenchmarkPath = [file("$rootDir/build/reports/helios_benchmark.json")]
+    outputFormat = "json"
+    benchmarkThreshold = ["Parsing": 500.00]
+}
+
+compareBenchmarkCI {
+    previousBenchmarkPath = file("$rootDir/helios_master/build/reports/master_benchmark.json")
+    currentBenchmarkPath = [file("$rootDir/build/reports/helios_benchmark.json")]
+    outputToFile = true
+    outputFormat = "json"
+    benchmarkThreshold = ["Parsing": 250.00, "Decodingfromraw": 250]
+    token = System.getenv("GITHUB_ACCESS_TOKEN")
+    repositoryOwner = POM_DEVELOPER_ID
+    repositoryName = "helios"
+    pullRequestSha = System.getenv("TRAVIS_PULL_REQUEST_SHA")
+    pullRequestNumber = (System.getenv("TRAVIS_PULL_REQUEST") != "false") ? System.getenv("TRAVIS_PULL_REQUEST")?.toInteger() : -1
+}
+
+uploadBenchmark {
+    benchmarkFiles = [file("$rootDir/build/reports/master_benchmark.json"), file("$rootDir/build/reports/libraries_benchmark.json")]
+    token = System.getenv("GITHUB_ACCESS_TOKEN")
+    repositoryOwner = POM_DEVELOPER_ID
+    repositoryName = "helios"
+    commitMessage = "Upload benchmark [ci skip]"
 }

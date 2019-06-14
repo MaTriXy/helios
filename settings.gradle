@@ -1,10 +1,14 @@
 rootProject.name = 'helios'
 
-include ':helios-meta-compiler'
+include 'docs'
+include ':helios-annotations'
 include ':helios-meta'
 include ':helios-core'
 include ':helios-parser'
 include ':helios-benchmarks'
 include ':helios-sample'
 include ':helios-optics'
+include ':helios-dsl-meta'
+include 'helios-test'
 
+startParameter.excludedTaskNames << ':docs:bintrayUpload'

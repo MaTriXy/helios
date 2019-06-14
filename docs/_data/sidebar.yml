@@ -1,0 +1,16 @@
+options:
+
+  - title: Index
+    url: /docs/
+
+  - title: Quickstart
+    url: /docs/quickstart/
+
+  - title: Parser
+    url: /docs/parser/
+
+  - title: Coding/Encoding
+    url: /docs/coding/
+
+  - title: Benchmarks
+    url: /docs/benchmarks/

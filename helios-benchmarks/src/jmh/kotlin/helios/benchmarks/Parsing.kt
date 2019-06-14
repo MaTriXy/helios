@@ -10,27 +10,27 @@ import org.openjdk.jmh.annotations.*
 
 @State(Scope.Benchmark)
 @Fork(1)
-@Warmup(iterations = 10)
-@Measurement(iterations = 10)
+@Warmup(iterations = 2)
+@Measurement(iterations = 5)
 open class Parsing {
 
-    @Benchmark
-    fun klaxon(): JsonObject = klaxon.parse(StringBuilder(jsonString)) as JsonObject
+  @Benchmark
+  fun helios(): Json = Json.parseUnsafe(jsonString)
 
-    @Benchmark
-    fun kotson(): JsonElement = gson.fromJson(jsonString)
+  @Benchmark
+  fun klaxon(): JsonObject = klaxonParser.parse(StringBuilder(jsonString)) as JsonObject
 
-    @Benchmark
-    fun moshi(): Map<String, Any?> = moshi.fromJson(jsonString)!!
+  @Benchmark
+  fun kotson(): JsonElement = gson.fromJson(jsonString)
 
-    @Benchmark
-    fun jackson(): JsonNode = jackson.readTree(jsonString)
+  @Benchmark
+  fun moshi(): Map<String, Any?> = moshi.fromJson(jsonString)!!
 
-    @Benchmark
-    fun helios(): Json = Json.parseUnsafe(jsonString)
+  @Benchmark
+  fun jackson(): JsonNode = jackson.readTree(jsonString)
 
-    @Benchmark
-    fun jsonIter(): Map<Any?, Any?> = JsonIterator.parse(jsonString).read() as Map<Any?, Any?>
+  @Benchmark
+  fun jsonIter(): Map<Any?, Any?> = JsonIterator.parse(jsonString).read() as Map<Any?, Any?>
 
 }
 

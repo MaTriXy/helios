@@ -1,19 +1,34 @@
 package helios.benchmarks.sample
 
-import helios.meta.json
+import helios.json
+import kotlinx.serialization.Serializable
 
-@json data class Friends(val friends: List<Friend>)
-@json data class NestedFriends(val id: Int, val name: String)
-@json data class Friend(
-        val _id: String,
-        val latitude: String,
-        val longitude: String,
-        val tags: List<String>,
-        val range: List<Int>,
-        val friends: List<NestedFriends>,
-        val greeting: String,
-        val favoriteFruit: String
-)
+@Serializable
+@json
+data class Friends(val friends: List<Friend>) {
+  companion object
+}
+
+@Serializable
+@json
+data class NestedFriends(val id: Int, val name: String) {
+  companion object
+}
+
+@Serializable
+@json
+data class Friend(
+  val _id: String,
+  val latitude: String,
+  val longitude: String,
+  val tags: List<String>,
+  val range: List<Int>,
+  val friends: List<NestedFriends>,
+  val greeting: String,
+  val favoriteFruit: String
+) {
+  companion object
+}
 
 val sampleJson: String = """
         {
