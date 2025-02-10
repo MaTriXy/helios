@@ -1,129 +1,71 @@
 package helios.instances
 
-import arrow.core.*
-import arrow.core.extensions.either.applicative.applicative
-import arrow.core.extensions.either.applicative.map2
-import arrow.core.extensions.either.monoid.monoid
-import arrow.data.extensions.list.foldable.fold
-import arrow.data.extensions.list.foldable.foldLeft
-import arrow.data.extensions.list.traverse.sequence
-import arrow.data.fix
-import arrow.extension
-import arrow.typeclasses.Monoid
+import arrow.core.Either
+import arrow.core.Try
 import helios.core.*
-import helios.typeclasses.*
+import helios.syntax.json.asJsNumberOrError
+import helios.syntax.json.asJsStringOrError
+import helios.typeclasses.Decoder
+import helios.typeclasses.Encoder
 import java.math.BigDecimal
 import java.math.BigInteger
-import java.util.*
+import java.util.UUID
 
-fun UUID.encoder() = object : Encoder<UUID> {
+interface UUIDEncoder : Encoder<UUID> {
   override fun UUID.encode(): Json = JsString(this.toString())
+
+  companion object {
+    val instance = object : UUIDEncoder {}
+  }
 }
 
-fun UUID.decoder() = object : Decoder<UUID> {
+interface UUIDDecoder : Decoder<UUID> {
   override fun decode(value: Json): Either<DecodingError, UUID> =
-    value.asJsString().map { UUID.fromString(it.value.toString()) }.toEither { StringDecodingError(value) }
+    value.asJsStringOrError {
+      Try { UUID.fromString(it.value.toString()) }.toEither { ex ->
+        ExceptionOnDecoding(value, "Invalid String cannot be decoded to UUID", ex)
+      }
+    }
+
+  companion object {
+    val instance = object : UUIDDecoder {}
+  }
 }
 
-fun BigDecimal.encoder() = object : Encoder<BigDecimal> {
+interface BigDecimalEncoder : Encoder<BigDecimal> {
   override fun BigDecimal.encode(): Json = JsNumber(this)
+
+  companion object {
+    val instance = object : BigDecimalEncoder {}
+  }
 }
 
-fun BigDecimal.decoder() = object : Decoder<BigDecimal> {
+interface BigDecimalDecoder : Decoder<BigDecimal> {
   override fun decode(value: Json): Either<DecodingError, BigDecimal> =
-    value.asJsNumber().map { it.toBigDecimal() }.toEither { NumberDecodingError(value) }
+    value.asJsNumberOrError(JsNumberDecodingError.JsBigDecimalError(value)) {
+      Try(it::toBigDecimal).toEither { JsNumberDecodingError.JsBigDecimalError(value) }
+    }
+
+  companion object {
+    val instance = object : BigDecimalDecoder {}
+  }
 }
 
-fun BigInteger.encoder() = object : Encoder<BigInteger> {
+interface BigIntegerEncoder : Encoder<BigInteger> {
   override fun BigInteger.encode(): Json = JsNumber(this)
+
+  companion object {
+    val instance = object : BigIntegerEncoder {}
+  }
 }
 
-fun BigInteger.decoder() = object : Decoder<BigInteger> {
+interface BigIntegerDecoder : Decoder<BigInteger> {
   override fun decode(value: Json): Either<DecodingError, BigInteger> =
-    value.asJsNumber().map { it.toBigInteger() }.toEither { NumberDecodingError(value) }
-}
-
-@extension
-interface ListEncoderInstance<in A> : Encoder<List<A>> {
-
-  fun encoderA(): Encoder<A>
-
-  override fun List<A>.encode(): Json =
-    JsArray(map { encoderA().run { it.encode() } })
+    value.asJsNumberOrError(JsNumberDecodingError.JsBigIntegerError(value)) {
+      Try(it::toBigInteger).toEither { JsNumberDecodingError.JsBigIntegerError(value) }
+    }
 
   companion object {
-    operator fun <A> invoke(encoderA: Encoder<A>): Encoder<List<A>> =
-      object : ListEncoderInstance<A> {
-        override fun encoderA(): Encoder<A> = encoderA
-      }
+    val instance = object : BigIntegerDecoder {}
   }
-
-}
-
-@extension
-interface ListDecoderInstance<out A> : Decoder<List<A>> {
-
-  fun decoderA(): Decoder<A>
-
-  override fun decode(value: Json): Either<DecodingError, List<A>> =
-    value.asJsArray().toList()
-      .flatMap { arr ->
-        arr.value.map { decoderA().decode(it) }
-      }.sequence(Either.applicative()).fix().map { it.fix().toList() }
-
-  companion object {
-    operator fun <A> invoke(decoderA: Decoder<A>): Decoder<List<A>> =
-      object : ListDecoderInstance<A> {
-        override fun decoderA(): Decoder<A> = decoderA
-      }
-  }
-
-}
-
-@extension
-interface MapEncoderInstance<A, B> : Encoder<Map<A, B>> {
-
-  fun keyEncoderA(): KeyEncoder<A>
-  fun encoderB(): Encoder<B>
-
-  override fun Map<A, B>.encode(): Json =
-    JsObject(this.map { (key, value) -> (keyEncoderA().run { key.keyEncode() } to encoderB().run { value.encode() }) }.toMap())
-
-  companion object {
-    operator fun <A, B> invoke(keyEncoderA: KeyEncoder<A>, encoderB: Encoder<B>): Encoder<Map<A, B>> =
-      object : MapEncoderInstance<A, B>, Encoder<Map<A, B>> {
-        override fun keyEncoderA(): KeyEncoder<A> = keyEncoderA
-        override fun encoderB(): Encoder<B> = encoderB
-      }
-  }
-
-}
-
-@extension
-interface MapDecoderInstance<A, B> : Decoder<Map<A, B>> {
-
-  fun keyDecoderA(): KeyDecoder<A>
-  fun decoderB(): Decoder<B>
-
-  override fun decode(value: Json): Either<DecodingError, Map<A, B>> =
-    value.asJsObject().fold({ ObjectDecodingError(value).left() }, { obj ->
-      obj.value.map { (key, value) ->
-        val maybeKey: Either<DecodingError, A> =
-          Json.parseFromString(key).mapLeft { StringDecodingError(value) }.flatMap { keyDecoderA().keyDecode(it) }
-        val maybeValue: Either<DecodingError, B> = decoderB().decode(value)
-        maybeKey.map2(maybeValue) { mapOf(it.toPair()) }
-      }
-        .foldLeft<Either<DecodingError, Map<A, B>>, Either<DecodingError, Map<A, B>>>(mapOf<A, B>().right()) { acc, either ->
-          acc.map2(either) { it.a + it.b }
-        }
-    })
-
-  companion object {
-    operator fun <A, B> invoke(keyDecoderA: KeyDecoder<A>, decoderB: Decoder<B>): Decoder<Map<A, B>> =
-      object : MapDecoderInstance<A, B> {
-        override fun keyDecoderA(): KeyDecoder<A> = keyDecoderA
-        override fun decoderB(): Decoder<B> = decoderB
-      }
-  }
-
 }

@@ -2,9 +2,9 @@
 
 **Helios** is a library used to transform `Json` text into a model and vice versa.
 It's based on part of the [Jawn Parser](https://github.com/non/jawn) built on `Arrow`,
-a Functional companion to Kotlin's Standard Library.
+a Functional companion to `Kotlin`'s Standard Library.
 
-Learn more on [**47deg.github.io/helios**](https://47deg.github.io/helios)
+Learn more on [**47degrees.github.io/helios**](https://47degrees.github.io/helios)
 
 ## Why Helios
 
@@ -13,34 +13,36 @@ with the advantage of using the `Arrow` library for functional programming.
 
 ## Adding the dependency
 
-**Helios** uses Kotlin version `1.3.31` and `Arrow` version `0.9.0`.
+**Helios** uses `Kotlin` version `1.3.31` and `Arrow` version `0.9.0`.
 
 To import the library on `Gradle`, add the following repository and dependencies:
 
 ```groovy
 repositories {
-      maven { url "https://jitpack.io" }
- }
+    maven { url = uri("https://dl.bintray.com/47deg/helios") }
+}
 
 dependencies {
-    compile "com.47deg:helios-core:0.0.1-SNAPSHOT"
-    compile "com.47deg:helios-parser:0.0.1-SNAPSHOT"
-    compile "com.47deg:helios-optics:0.0.1-SNAPSHOT"
+    compile "com.47deg:helios-core:0.2.0"
+    compile "com.47deg:helios-parser:0.2.0"
+    compile "com.47deg:helios-optics:0.2.0"
+    kapt "com.47deg:helios-meta:0.2.0"
+    kapt "com.47deg:helios-dsl-meta:0.2.0"
 }
 ```
 
 ## Running Benchmarks
 
-To run the benchmarks for comparing Helios with other Json libraries, execute the following command:
+To run the benchmarks for comparing **Helios** with other `Json` libraries, execute the following command:
 
 ```bash
-./gradlew :helios-benchmarks: executeBenchmarks
+./gradlew :helios-benchmarks:executeBenchmarks
 ```
 
-To run the benchmarks with Helios' performance, execute the following command:
+To run the benchmarks with **Helios**' performance, execute the following command:
 
 ```bash
-./gradlew :helios-benchmarks: executeHeliosBenchmark
+./gradlew :helios-benchmarks:executeHeliosBenchmark
 ```
 
 ## Running Microsite

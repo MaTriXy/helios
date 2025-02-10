@@ -1,10 +1,12 @@
+@file:Suppress("unused")
+
 package helios.benchmarks
 
 import arrow.core.flatMap
 import helios.benchmarks.sample.Friends
 import helios.core.Json
-import kotlinx.serialization.json.Json as Jsonx
 import org.openjdk.jmh.annotations.*
+import kotlinx.serialization.json.Json as Jsonx
 
 @State(Scope.Benchmark)
 @Fork(1)
@@ -15,7 +17,7 @@ open class DecodingFromRaw {
   @Benchmark
   fun helios(): Friends =
     Json.parseFromString(jsonString)
-      .flatMap { heliosFriendsDecoder.decode(it) }
+      .flatMap(heliosFriendsDecoder::decode)
       .fold({ throw RuntimeException(it.toString()) }, { it })
 
   @Benchmark

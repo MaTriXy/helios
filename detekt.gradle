@@ -1,11 +1,13 @@
 repositories {
 
     mavenCentral()
-    maven { url "http://dl.bintray.com/arturbosch/code-analysis" }
+    maven { url "https://dl.bintray.com/arturbosch/code-analysis" }
 
     configurations {
         detekt
     }
+
+    def reportFile = "$project.projectDir.absolutePath/reports/detekt.txt"
 
     task detekt(type: JavaExec) {
         group = "verification"
@@ -13,10 +15,15 @@ repositories {
         classpath = configurations.detekt
         def input = "$project.projectDir.absolutePath"
         def config = "$project.projectDir/detekt.yml"
-        def reports = "helios:$project.projectDir.absolutePath/reports/report.detekt"
+        def reports = "txt:$reportFile"
         def baseline = "$project.projectDir.absolutePath/reports/baseline.xml"
         def filters = ".*test.*"
-        def params = ['-i', input, '-c', config, '-f', filters, '-r', reports, '-b', baseline]
+        def params = ["-i", input, "-c", config, "-f", filters, "-r", reports, "-b", baseline]
+        subprojects.each{subproject ->
+            inputs.files fileTree(subproject.projectDir).include("**/src/main/kotlin/**/*.kt")
+        }
+        inputs.file config
+        outputs.file reportFile
         args(params)
     }
 
@@ -26,15 +33,20 @@ repositories {
         classpath = configurations.detekt
         def input = "$project.projectDir.absolutePath"
         def config = "$project.projectDir/detekt.yml"
-        def reports = "helios:$project.projectDir.absolutePath/reports/report.detekt"
+        def reports = "txt:$reportFile"
         def baseline = "$project.projectDir.absolutePath/reports/baseline.xml"
         def filters = ".*test.*"
-        def params = ['-i', input, '-c', config, '-f', filters, '-r', reports, '-b', baseline, '-cb']
+        def params = ["-i", input, "-c", config, "-f", filters, "-r", reports, "-b", baseline, "-cb"]
+        subprojects.each{subproject ->
+            inputs.files fileTree(subproject.projectDir).include("**/src/main/kotlin/**/*.kt")
+        }
+        inputs.file config
+        outputs.file reportFile
         args(params)
     }
 
     dependencies {
-        detekt 'io.gitlab.arturbosch.detekt:detekt-cli:1.0.0.RC9'
-        detekt 'io.gitlab.arturbosch.detekt:detekt-formatting:1.0.0.RC9'
+        detekt "io.gitlab.arturbosch.detekt:detekt-cli:1.0.0.RC9"
+        detekt "io.gitlab.arturbosch.detekt:detekt-formatting:1.0.0.RC9"
     }
 }

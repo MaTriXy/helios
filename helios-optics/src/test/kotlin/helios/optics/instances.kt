@@ -2,17 +2,13 @@ package helios.optics
 
 import arrow.core.None
 import arrow.core.Option
-import arrow.core.extensions.option.applicative.applicative
 import arrow.core.extensions.option.eq.eq
-import arrow.core.orElse
-import helios.test.generators.alphaStr
-import helios.test.generators.*
-import arrow.test.UnitSpec
-import arrow.test.generators.functionAToB
-import arrow.test.generators.option
-import arrow.test.laws.LensLaws
-import arrow.test.laws.OptionalLaws
-import arrow.test.laws.TraversalLaws
+import helios.arrow.UnitSpec
+import helios.arrow.generators.functionAToB
+import helios.arrow.generators.option
+import helios.arrow.laws.LensLaws
+import helios.arrow.laws.OptionalLaws
+import helios.arrow.laws.TraversalLaws
 import arrow.typeclasses.Eq
 import arrow.typeclasses.Monoid
 import helios.core.JsArray
@@ -25,7 +21,11 @@ import helios.optics.jsarray.index.index
 import helios.optics.jsobject.at.at
 import helios.optics.jsobject.each.each
 import helios.optics.jsobject.index.index
-import io.kotlintest.properties.Gen
+import helios.test.generators.alphaStr
+import helios.test.generators.jsArray
+import helios.test.generators.jsObject
+import helios.test.generators.json
+import io.kotest.properties.Gen
 
 class InstancesTest : UnitSpec() {
 
